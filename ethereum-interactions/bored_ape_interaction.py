@@ -1,63 +1,84 @@
-// install "Web3.py" library 
-// Infura key is not provided, use <your Infura HTTPs URI>
+"""Simple Ethereum interactions with Web3.py.
 
-!pip install web3
+This script keeps the original flow of the repository:
+1. Connect to an Ethereum node
+2. Retrieve the latest block
+3. Check a wallet balance
+4. Interact with the BAYC contract (owner, supply, symbol, token details)
+"""
 
-// import Web3 class
+from __future__ import annotations
+
+import json
+import os
+from typing import Any
 
 from web3 import Web3
 
-providerURL = '<your Infura HTTPs URI>'
-w3 = Web3(Web3.HTTPProvider(providerURL))
-w3.isConnected()
+# BAYC contract address on Ethereum mainnet
+CONTRACT_ADDRESS = "0xBC4CA0EdA7647A8aB7C2061c2E118A18a936f13D"
 
-// interact with the Ethereum blockchain
-from web3 import Web3
-providerURL = '<your Infura HTTPs URI>'
-w3 = Web3(Web3.HTTPProvider(providerURL))
-latestBlock = w3.eth.get_block('latest')
-print(latestBlock)
+# Read from env var instead of hardcoding credentials.
+PROVIDER_URL = os.getenv("INFURA_HTTPS_URI", "<your Infura HTTPs URI>")
+
+# Minimal ABI for the read-only functions used in this example.
+BAYC_MINIMAL_ABI = json.loads(
+    """
+    [
+      {"inputs": [], "name": "owner", "outputs": [{"internalType": "address", "name": "", "type": "address"}], "stateMutability": "view", "type": "function"},
+      {"inputs": [], "name": "totalSupply", "outputs": [{"internalType": "uint256", "name": "", "type": "uint256"}], "stateMutability": "view", "type": "function"},
+      {"inputs": [], "name": "symbol", "outputs": [{"internalType": "string", "name": "", "type": "string"}], "stateMutability": "view", "type": "function"},
+      {"inputs": [{"internalType": "uint256", "name": "tokenId", "type": "uint256"}], "name": "tokenURI", "outputs": [{"internalType": "string", "name": "", "type": "string"}], "stateMutability": "view", "type": "function"},
+      {"inputs": [{"internalType": "uint256", "name": "tokenId", "type": "uint256"}], "name": "ownerOf", "outputs": [{"internalType": "address", "name": "", "type": "address"}], "stateMutability": "view", "type": "function"}
+    ]
+    """
+)
 
 
-// How to check balance in Wei
-wallet = w3.toChecksumAddress('0x85F34591e36b86E3c7417A9a3551A0DFe1A71b37')
-print(w3.eth.get_balance(wallet))
+def connect(provider_url: str) -> Web3:
+    """Create a Web3 connection to an HTTPS provider."""
+    web3 = Web3(Web3.HTTPProvider(provider_url))
+    if not web3.is_connected():
+        raise ConnectionError(
+            "Unable to connect to Ethereum provider. Check INFURA_HTTPS_URI."
+        )
+    return web3
 
-// interact with a smart contract. I interacted with the Bored Ape 
-from web3.providers.rpc import HTTPProvider
-from web3 import Web3
 
-providerURL = '<your Infura HTTPs URI>'
-abi = '[{"inputs":[{"internalType":"string","name":"name","type":"string"},{"internalType":"string","name":"symbol","type":"string"},{"internalType":"uint256","name":"maxNftSupply","type":"uint256"},{"internalType":"uint256","name":"saleStart","type":"uint256"}],"stateMutability":"nonpayable","type":"constructor"},{"anonymous":false,"inputs":[{"indexed":true,"internalType":"address","name":"owner","type":"address"},{"indexed":true,"internalType":"address","name":"approved","type":"address"},{"indexed":true,"internalType":"uint256","name":"tokenId","type":"uint256"}],"name":"Approval","type":"event"},{"anonymous":false,"inputs":[{"indexed":true,"internalType":"address","name":"owner","type":"address"},{"indexed":true,"internalType":"address","name":"operator","type":"address"},{"indexed":false,"internalType":"bool","name":"approved","type":"bool"}],"name":"ApprovalForAll","type":"event"},{"anonymous":false,"inputs":[{"indexed":true,"internalType":"address","name":"previousOwner","type":"address"},{"indexed":true,"internalType":"address","name":"newOwner","type":"address"}],"name":"OwnershipTransferred","type":"event"},{"anonymous":false,"inputs":[{"indexed":true,"internalType":"address","name":"from","type":"address"},{"indexed":true,"internalType":"address","name":"to","type":"address"},{"indexed":true,"internalType":"uint256","name":"tokenId","type":"uint256"}],"name":"Transfer","type":"event"},{"inputs":[],"name":"BAYC_PROVENANCE","outputs":[{"internalType":"string","name":"","type":"string"}],"stateMutability":"view","type":"function"},{"inputs":[],"name":"MAX_APES","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},{"inputs":[],"name":"REVEAL_TIMESTAMP","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},{"inputs":[],"name":"apePrice","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},{"inputs":[{"internalType":"address","name":"to","type":"address"},{"internalType":"uint256","name":"tokenId","type":"uint256"}],"name":"approve","outputs":[],"stateMutability":"nonpayable","type":"function"},{"inputs":[{"internalType":"address","name":"owner","type":"address"}],"name":"balanceOf","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},{"inputs":[],"name":"baseURI","outputs":[{"internalType":"string","name":"","type":"string"}],"stateMutability":"view","type":"function"},{"inputs":[],"name":"emergencySetStartingIndexBlock","outputs":[],"stateMutability":"nonpayable","type":"function"},{"inputs":[],"name":"flipSaleState","outputs":[],"stateMutability":"nonpayable","type":"function"},{"inputs":[{"internalType":"uint256","name":"tokenId","type":"uint256"}],"name":"getApproved","outputs":[{"internalType":"address","name":"","type":"address"}],"stateMutability":"view","type":"function"},{"inputs":[{"internalType":"address","name":"owner","type":"address"},{"internalType":"address","name":"operator","type":"address"}],"name":"isApprovedForAll","outputs":[{"internalType":"bool","name":"","type":"bool"}],"stateMutability":"view","type":"function"},{"inputs":[],"name":"maxApePurchase","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},{"inputs":[{"internalType":"uint256","name":"numberOfTokens","type":"uint256"}],"name":"mintApe","outputs":[],"stateMutability":"payable","type":"function"},{"inputs":[],"name":"name","outputs":[{"internalType":"string","name":"","type":"string"}],"stateMutability":"view","type":"function"},{"inputs":[],"name":"owner","outputs":[{"internalType":"address","name":"","type":"address"}],"stateMutability":"view","type":"function"},{"inputs":[{"internalType":"uint256","name":"tokenId","type":"uint256"}],"name":"ownerOf","outputs":[{"internalType":"address","name":"","type":"address"}],"stateMutability":"view","type":"function"},{"inputs":[],"name":"renounceOwnership","outputs":[],"stateMutability":"nonpayable","type":"function"},{"inputs":[],"name":"reserveApes","outputs":[],"stateMutability":"nonpayable","type":"function"},{"inputs":[{"internalType":"address","name":"from","type":"address"},{"internalType":"address","name":"to","type":"address"},{"internalType":"uint256","name":"tokenId","type":"uint256"}],"name":"safeTransferFrom","outputs":[],"stateMutability":"nonpayable","type":"function"},{"inputs":[{"internalType":"address","name":"from","type":"address"},{"internalType":"address","name":"to","type":"address"},{"internalType":"uint256","name":"tokenId","type":"uint256"},{"internalType":"bytes","name":"_data","type":"bytes"}],"name":"safeTransferFrom","outputs":[],"stateMutability":"nonpayable","type":"function"},{"inputs":[],"name":"saleIsActive","outputs":[{"internalType":"bool","name":"","type":"bool"}],"stateMutability":"view","type":"function"},{"inputs":[{"internalType":"address","name":"operator","type":"address"},{"internalType":"bool","name":"approved","type":"bool"}],"name":"setApprovalForAll","outputs":[],"stateMutability":"nonpayable","type":"function"},{"inputs":[{"internalType":"string","name":"baseURI","type":"string"}],"name":"setBaseURI","outputs":[],"stateMutability":"nonpayable","type":"function"},{"inputs":[{"internalType":"string","name":"provenanceHash","type":"string"}],"name":"setProvenanceHash","outputs":[],"stateMutability":"nonpayable","type":"function"},{"inputs":[{"internalType":"uint256","name":"revealTimeStamp","type":"uint256"}],"name":"setRevealTimestamp","outputs":[],"stateMutability":"nonpayable","type":"function"},{"inputs":[],"name":"setStartingIndex","outputs":[],"stateMutability":"nonpayable","type":"function"},{"inputs":[],"name":"startingIndex","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},{"inputs":[],"name":"startingIndexBlock","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},{"inputs":[{"internalType":"bytes4","name":"interfaceId","type":"bytes4"}],"name":"supportsInterface","outputs":[{"internalType":"bool","name":"","type":"bool"}],"stateMutability":"view","type":"function"},{"inputs":[],"name":"symbol","outputs":[{"internalType":"string","name":"","type":"string"}],"stateMutability":"view","type":"function"},{"inputs":[{"internalType":"uint256","name":"index","type":"uint256"}],"name":"tokenByIndex","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},{"inputs":[{"internalType":"address","name":"owner","type":"address"},{"internalType":"uint256","name":"index","type":"uint256"}],"name":"tokenOfOwnerByIndex","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},{"inputs":[{"internalType":"uint256","name":"tokenId","type":"uint256"}],"name":"tokenURI","outputs":[{"internalType":"string","name":"","type":"string"}],"stateMutability":"view","type":"function"},{"inputs":[],"name":"totalSupply","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},{"inputs":[{"internalType":"address","name":"from","type":"address"},{"internalType":"address","name":"to","type":"address"},{"internalType":"uint256","name":"tokenId","type":"uint256"}],"name":"transferFrom","outputs":[],"stateMutability":"nonpayable","type":"function"},{"inputs":[{"internalType":"address","name":"newOwner","type":"address"}],"name":"transferOwnership","outputs":[],"stateMutability":"nonpayable","type":"function"},{"inputs":[],"name":"withdraw","outputs":[],"stateMutability":"nonpayable","type":"function"}]'
+def latest_block(web3: Web3) -> Any:
+    """Fetch the latest block."""
+    return web3.eth.get_block("latest")
 
-contractAddress = '0xBC4CA0EdA7647A8aB7C2061c2E118A18a936f13D'
 
-#Connect to remote provider
-we = Web3(Web3.HTTPProvider(providerURL))
+def wallet_balance_wei(web3: Web3, wallet: str) -> int:
+    """Return wallet balance in Wei."""
+    checksum_wallet = Web3.to_checksum_address(wallet)
+    return web3.eth.get_balance(checksum_wallet)
 
-#Check if connected
-we.isConnected()
 
-#Create an instance of the contract
-contractInstance = w3.eth.contract(address = contractAddress, abi = abi)
-print(contractInstance)
+def bayc_contract(web3: Web3):
+    """Build a BAYC contract instance with minimal ABI."""
+    return web3.eth.contract(address=CONTRACT_ADDRESS, abi=BAYC_MINIMAL_ABI)
 
-#call the function to get owner address 
-owner = contractInstance.functions.owner().call()
-print(owner)
 
-#call the function to get totalSupply
-totalSupply = contractInstance.functions.totalSupply().call()
-print(totalSupply)
+def main() -> None:
+    web3 = connect(PROVIDER_URL)
 
-#call the funciton to get the symbol of token collection
-symbol = contractInstance.functions.symbol().call()
-print(symbol)
+    print("Connected:", web3.is_connected())
+    print("Latest block:", latest_block(web3))
 
-#call the funciton to get the token URI of Bored APE NFT token with id 2321
-tokenURI = contractInstance.functions.tokenURI(2321).call()
-print(tokenURI)
+    wallet = "0x85F34591e36b86E3c7417A9a3551A0DFe1A71b37"
+    print("Wallet balance (Wei):", wallet_balance_wei(web3, wallet))
 
-#call the funciton to get the token owner of Bored Ape NFT token with id 2321 (chosen randomly)
-ownerOf = contractInstance.functions.ownerOf(2321).call()
-print(ownerOf)
+    contract = bayc_contract(web3)
+    token_id = 2321
+
+    print("BAYC owner:", contract.functions.owner().call())
+    print("BAYC total supply:", contract.functions.totalSupply().call())
+    print("BAYC symbol:", contract.functions.symbol().call())
+    print(f"BAYC tokenURI({token_id}):", contract.functions.tokenURI(token_id).call())
+    print(f"BAYC ownerOf({token_id}):", contract.functions.ownerOf(token_id).call())
+
+
+if __name__ == "__main__":
+    main()
